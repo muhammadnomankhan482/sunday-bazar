@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(ownerId) {
+      return isSignedIn() && request.auth.uid == ownerId;
+    }
+
+    // Validator for User Configuration
+    function isValidUser(data) {
+      return data.id is string
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.email is string && data.email.size() > 0 && data.email.size() <= 200
+        && data.avatar is string && data.avatar.size() <= 1000
+        && data.phone is string && data.phone.size() <= 50;
+    }
+
+    // Match users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId);
+      allow create, update: if isSignedIn() && (request.auth.uid == userId) && isValidUser(incoming());
+      allow delete: if false; // profiles are not deleted via client SDK
+    }
+
+    // Validator for Product Configuration
+    function isValidProduct(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 150
+        && data.description is string && data.description.size() >= 5 && data.description.size() <= 5000
+        && data.price is number && data.price >= 0
+        && data.category is string && data.category.size() <= 50
+        && data.location is string && data.location.size() <= 60
+        && data.sellerName is string && data.sellerName.size() <= 100
+        && data.ownerId is string && data.ownerId == request.auth.uid;
+    }
+
+    // Match products Collection
+    match /products/{productId} {
+      allow get, list: if true; // anyone can view advertisements
+      
+      allow create: if isSignedIn() 
+        && isValidId(productId)
+        && isValidProduct(incoming())
+        && incoming().createdAt is string; 
+        
+      allow update: if isSignedIn()
+        && isValidId(productId)
+        && isOwner(existing().ownerId)
+        && isValidProduct(incoming())
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt;
+        
+      allow delete: if isSignedIn()
+        && isValidId(productId)
+        && isOwner(existing().ownerId);
+    }
+  }
+}
