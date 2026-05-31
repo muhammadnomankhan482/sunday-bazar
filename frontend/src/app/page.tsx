@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, HelpCircle, HeartOff, RefreshCw, Layers, SlidersHorizontal, ArrowUpRight, Search, Landmark } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { Product, User } from '../types';
 import Header from '../components/Header';
 import SidebarFilters from '../components/SidebarFilters';
@@ -11,8 +11,7 @@ import ProductDetailModal from '../components/ProductDetailModal';
 import AuthModal from '../components/AuthModal';
 import SellWarnPopup from '../components/SellWarnPopup';
 import SellFormModal from '../components/SellFormModal';
-import { auth } from '../lib/firebase';
-import { signOut } from 'firebase/auth';
+import { fetchProducts as fetchFromBackend, clearToken } from '../lib/api';
 
 const RANDOM_CITIES = [
   'Karachi', 'Lahore', 'Islamabad', 'Faisalabad', 'Rawalpindi', 'Peshawar', 'Multan', 'Gujranwala', 'Quetta', 'Sialkot',
@@ -49,43 +48,39 @@ export default function Home() {
   const [sellWarnOpen, setSellWarnOpen] = useState(false);
   const [activeDetailProduct, setActiveDetailProduct] = useState<Product | null>(null);
 
-  // Load initial products from DummyJSON
+  // Load products from our backend (GET /products)
   const fetchProducts = async () => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('https://dummyjson.com/products?limit=100');
-      if (!response.ok) {
-        throw new Error('Failed to retrieve product data.');
-      }
-      const data = await response.json();
-      
-      // Normalize products & shift price values to emulate regional PKR prices
-      const normalized: Product[] = data.products.map((item: any) => {
-        // Map beauty to skincare for simplicity matching our category filters
-        let categoryMapped = item.category;
-        if (categoryMapped === 'beauty') {
-          categoryMapped = 'skincare';
-        }
+      const data = await fetchFromBackend();
+
+      // Backend se aaye products normalize karo
+      const normalized: Product[] = data.map((item: any) => {
+        let category = item.category || 'general';
+        if (category === 'beauty') category = 'skincare';
 
         return {
           ...item,
-          category: categoryMapped,
-          // Convert dollar to Pakistani Rupee-like amounts for high-realism (e.g. $10 becomes Rs. 2,500)
-          price: Math.round(item.price * 250), 
-          isLocal: false,
-          location: RANDOM_CITIES[Math.floor(Math.random() * RANDOM_CITIES.length)],
-          createdAt: RANDOM_TIMES[Math.floor(Math.random() * RANDOM_TIMES.length)],
-          sellerName: item.brand || 'OLX Premium Seller',
-          sellerPhone: `+92 3${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 900 + 100)} ${Math.floor(Math.random() * 9000 + 1000)}`,
-          likesCount: Math.floor(Math.random() * 30),
+          id: item._id || item.id,
+          category,
+          // Agar backend ne price USD mein diya toh PKR mein convert karo
+          price: item.price > 1000 ? item.price : Math.round(item.price * 250),
+          isLocal: item.isLocal || false,
+          location: item.location || RANDOM_CITIES[Math.floor(Math.random() * RANDOM_CITIES.length)],
+          createdAt: item.createdAt || RANDOM_TIMES[Math.floor(Math.random() * RANDOM_TIMES.length)],
+          sellerName: item.sellerName || item.brand || 'Sunday Bazar Seller',
+          sellerPhone: item.sellerPhone || `+92 3${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 900 + 100)} ${Math.floor(Math.random() * 9000 + 1000)}`,
+          likesCount: item.likesCount || Math.floor(Math.random() * 30),
+          thumbnail: item.thumbnail || item.image || 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?q=80&w=600&auto=format&fit=crop',
+          images: item.images || [item.thumbnail || item.image || ''],
         };
       });
 
-      // Filter to keep categories that the UI bar displays or fallback
       setProducts(normalized);
     } catch (err: any) {
-      setError(err.message || 'An error occurred while loading products.');
+      const msg = err?.response?.data?.message || err?.message || 'Products load nahi hue.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -98,7 +93,7 @@ export default function Home() {
   // Load localStorage data only on client after mount (prevents hydration mismatch)
   useEffect(() => {
     try {
-      const cachedUser = localStorage.getItem('olx_session_user');
+      const cachedUser = localStorage.getItem('sb_current_user');
       if (cachedUser) setCurrentUser(JSON.parse(cachedUser));
     } catch { /* ignore */ }
 
@@ -116,56 +111,14 @@ export default function Home() {
     localStorage.setItem('olx_saved_favorites_list', JSON.stringify(favorites));
   }, [favorites, clientReady]);
 
-  // Auth Operations
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((fbUser) => {
-      if (fbUser) {
-        const loggedUser: User = {
-          id: fbUser.uid,
-          name: fbUser.displayName || fbUser.email?.split('@')[0] || 'User',
-          email: fbUser.email || '',
-          avatar: fbUser.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(fbUser.email || '')}`,
-          phone: '+92 300 1234567',
-          isLoggedIn: true,
-          createdAt: new Date().toLocaleDateString(),
-        };
-        setCurrentUser((prev) => {
-          // Avoid re-render if same user is already set
-          if (prev?.id === loggedUser.id) return prev;
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('olx_session_user', JSON.stringify(loggedUser));
-          }
-          return loggedUser;
-        });
-      } else {
-        setCurrentUser((prev) => {
-          // Keep local/demo user from cache
-          if (prev?.id?.startsWith('local_')) return prev;
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('olx_session_user');
-          }
-          return null;
-        });
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
-    localStorage.setItem('olx_session_user', JSON.stringify(user));
+    localStorage.setItem('sb_current_user', JSON.stringify(user));
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (e) {
-      console.warn("Firebase Auth signOut failed:", e);
-    }
+  const handleLogout = () => {
+    clearToken(); // JWT token + user localStorage clear
     setCurrentUser(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('olx_session_user');
-    }
   };
 
   // Sell Button Interactive Logic
@@ -433,7 +386,7 @@ export default function Home() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 border-t border-teal-900 pt-5 flex flex-col sm:flex-row justify-between items-center text-[10px] text-teal-200">
-          <p>© 2026 SUNDAY BAZAR. Powered by DummyJSON API.</p>
+          <p>© 2026 SUNDAY BAZAR. Powered by Sunday Bazar Backend API.</p>
           <p className="mt-2 sm:mt-0">Designed elegantly in Next.js framework page view.</p>
         </div>
       </footer>

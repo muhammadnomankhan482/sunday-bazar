@@ -1,39 +1,27 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { 
-  getAuth, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged,
-  updateProfile
-} from 'firebase/auth';
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  getDocs, 
-  addDoc,
-  query,
-  where,
-  onSnapshot
-} from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
+/**
+ * firebase.ts — STUB FILE
+ * Firebase ab is project mein use nahi ho raha.
+ * Authentication aur data storage ab JWT-based backend se ho raha hai.
+ * Yeh file sirf compatibility ke liye rakhi gayi hai.
+ */
 
-// Initialize Firebase App gracefully
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-
-// Check if we are running with placeholder rules or if actual Firebase API is connected
-export const isFirebaseConfigured = (): boolean => {
-  return (
-    firebaseConfig.apiKey !== 'AIzaSyDummyKeyPlaceholderForSundayBazar' &&
-    !firebaseConfig.apiKey.includes('Dummy')
-  );
+// No-op stubs — koi bhi import kare toh error na aaye
+export const auth = {
+  onAuthStateChanged: (_cb: any) => () => {},
+  currentUser: null,
 };
+
+export const db = {};
+
+export const isFirebaseConfigured = (): boolean => false;
+
+export async function saveUserProfileToFirestore(_user: any): Promise<void> {
+  // No-op — Firebase removed
+}
+
+export async function saveProductToFirestore(_product: any): Promise<void> {
+  // No-op — Firebase removed
+}
 
 export enum OperationType {
   CREATE = 'create',
@@ -48,67 +36,9 @@ export interface FirestoreErrorInfo {
   error: string;
   operationType: OperationType;
   path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-    tenantId?: string | null;
-    providerInfo?: {
-      providerId?: string | null;
-      email?: string | null;
-    }[];
-  };
+  authInfo: object;
 }
 
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData?.map(provider => ({
-        providerId: provider.providerId,
-        email: provider.email,
-      })) || []
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
-
-// Write legimate user profile helper
-export async function saveUserProfileToFirestore(user: UserProfile) {
-  if (!isFirebaseConfigured()) return;
-  const path = `users/${user.id}`;
-  try {
-    await setDoc(doc(db, 'users', user.id), user);
-  } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, path);
-  }
-}
-
-// Write legimate product helper
-export async function saveProductToFirestore(product: any) {
-  if (!isFirebaseConfigured()) return;
-  const path = `products/${product.id}`;
-  try {
-    await setDoc(doc(db, 'products', String(product.id)), product);
-  } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, path);
-  }
-}
-
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  avatar: string;
-  phone: string;
-  createdAt: string;
+export function handleFirestoreError(_error: unknown, _operationType: OperationType, _path: string | null): void {
+  // No-op
 }
