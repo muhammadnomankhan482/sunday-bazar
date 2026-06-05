@@ -6,7 +6,7 @@
 
 import axios from 'axios';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 // Axios instance with base URL
 const apiClient = axios.create({
@@ -49,7 +49,7 @@ apiClient.interceptors.response.use(
 // ─── Auth API ────────────────────────────────────────────────────────────────
 
 export interface RegisterPayload {
-  username: string; // backend expects 'username' not 'name'
+  name: string;   // backend expects 'name'
   email: string;
   password: string;
   phone?: string;

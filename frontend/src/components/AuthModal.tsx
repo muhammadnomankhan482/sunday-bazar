@@ -83,7 +83,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess, message }: 
 
       } else {
         // ── REGISTER ───────────────────────────────────────────
-        const res = await registerUser({ username: name, email, password, phone });
+        const res = await registerUser({ name, email, password, phone });
 
         // Kuch backends register ke baad seedha token dete hain
         if (res.token) {

@@ -2,6 +2,7 @@ const express = require("express");
 const Product = require("../models/Product");
 const upload = require("../middleware/upload");
 const { uploadToCloudinary } = require("../config/cloudinary");
+const authMiddleware = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -69,8 +70,8 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// POST /products — image upload required
-router.post("/", upload.single("image"), async (req, res) => {
+// POST /products — auth required + image upload
+router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
   try {
     const { title, description, price, category } = req.body;
 
