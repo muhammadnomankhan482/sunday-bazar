@@ -60,12 +60,14 @@ export default function Home() {
         let category = item.category || 'general';
         if (category === 'beauty') category = 'skincare';
 
+        const id = item.id ?? item._id ?? item.productId ?? Math.random().toString(36).slice(2);
+
         return {
           ...item,
-          id: item._id || item.id,
+          id,
           category,
           // Agar backend ne price USD mein diya toh PKR mein convert karo
-          price: item.price > 1000 ? item.price : Math.round(item.price * 250),
+          price: item.price > 1000 ? item.price : Math.round((item.price || 0) * 250),
           isLocal: item.isLocal || false,
           location: item.location || RANDOM_CITIES[Math.floor(Math.random() * RANDOM_CITIES.length)],
           createdAt: item.createdAt || RANDOM_TIMES[Math.floor(Math.random() * RANDOM_TIMES.length)],
