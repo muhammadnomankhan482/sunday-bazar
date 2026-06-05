@@ -1,21 +1,21 @@
 {
-  "name": "ecommerce-backend",
+  "name": "e-commerce-backend",
   "version": "1.0.0",
-  "description": "ecommerce backend for batch 17",
-  "main": "app.js",
+  "description": "E-commerce backend with Cloudinary image uploads",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
   },
-  "author": "arham",
-  "license": "ISC",
   "dependencies": {
-    "bcrypt": "^6.0.0",
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
-    "nodemon": "^3.1.14"
+    "cloudinary": "^2.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "mongoose": "^8.14.0",
+    "multer": "^1.4.5-lts.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
