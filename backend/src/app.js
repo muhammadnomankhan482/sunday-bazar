@@ -12,6 +12,7 @@ const allowedOrigins = [
   process.env.CLIENT_URL || "http://localhost:3000",
   "http://localhost:3000",
   "https://sunday-bazar-xaek.vercel.app",
+  "https://sunday-bazar.vercel.app",
 ];
 
 app.use(
