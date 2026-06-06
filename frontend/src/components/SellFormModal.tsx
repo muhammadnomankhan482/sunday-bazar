@@ -83,8 +83,10 @@ export default function SellFormModal({ isOpen, onClose, currentUser, onAddProdu
     setLoading(true);
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('sb_jwt_token') : null;
       const res = await fetch(`${backendUrl}/products`, {
         method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData,
       });
 
