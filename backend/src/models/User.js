@@ -6,9 +6,9 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     phone: { type: String, default: "" },
+    avatar: { type: String, default: "" }, // Cloudinary image URL
   },
   { timestamps: true }
 );
 
-// "SBUser" collection use karo — conflict se bachne ke liye
 module.exports = mongoose.models.SBUser || mongoose.model("SBUser", userSchema);
