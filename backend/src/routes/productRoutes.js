@@ -3,12 +3,22 @@ const Product = require("../models/Product");
 const upload = require("../middleware/upload");
 const { uploadToCloudinary } = require("../config/cloudinary");
 const authMiddleware = require("../middleware/auth");
+const nodeCache = require('node-cache')
+
+const cache = new nodeCache({ stdTTL: 120}); // 100 sec
 
 const router = express.Router();
 
 // GET /products — list with pagination
 router.get("/", async (req, res) => {
   try {
+    const cacheProducts = cache.get("products")
+
+    if(cacheProducts){
+      console.log("ab data cache se arha he")
+     return res.status(200).json(cacheProducts)
+    }
+
     const limit = Math.min(parseInt(req.query.limit, 10) || 30, 100);
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
@@ -17,6 +27,16 @@ router.get("/", async (req, res) => {
       Product.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
       Product.countDocuments(),
     ]);
+
+    console.log("Data db se arha he ")
+
+    cache.set('products' ,{
+      products: products.map((p) => p.toJSON()),
+      total,
+      skip,
+      limit,
+      page,
+    } )
 
     res.json({
       products: products.map((p) => p.toJSON()),
